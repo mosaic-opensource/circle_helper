@@ -4,6 +4,11 @@
             "displayName": "Measure",
             "name": "measure",
             "kind": "Measure"
+        },
+        {
+            "displayName": "Tooltips",
+            "name": "tooltip",
+            "kind": "Measure"
         }
     ],
     "objects": {
@@ -38,7 +43,7 @@
             "canvas": true
         },
         "roles": [
-            "Tooltips"
+            "tooltip"
         ]
     },
     "dataViewMappings": [

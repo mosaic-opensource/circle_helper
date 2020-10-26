@@ -35,7 +35,9 @@ import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import VisualObjectInstance = powerbi.VisualObjectInstance;
 import DataView = powerbi.DataView;
 import VisualObjectInstanceEnumerationObject = powerbi.VisualObjectInstanceEnumerationObject;
+import VisualObjectInstanceEnumeration = powerbi.VisualObjectInstanceEnumeration;
 import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+import ISelectionId = powerbi.visuals.ISelectionId;
 import { VisualSettings } from "./settings";
 
 // imports d3 library
@@ -46,14 +48,6 @@ type Selection<T extends d3.BaseType> = d3.Selection<T, any, any, any>;
 import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
 import { createTooltipServiceWrapper, TooltipEventArgs, ITooltipServiceWrapper, TooltipEnabledDataPoint } from "powerbi-visuals-utils-tooltiputils";
 import { style } from "d3";
-
-interface DataPoint {
-    tooltips: VisualTooltipDataItem[];
-};
-
-interface ViewModel {
-    dataPoints: DataPoint[];
-};
 
 export class Visual implements IVisual {
 
@@ -87,6 +81,11 @@ export class Visual implements IVisual {
 
         // run tooltip wrapper
         this.tooltipServiceWrapper = createTooltipServiceWrapper(options.host.tooltipService, options.element)
+    }
+
+    public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
+        const settings: VisualSettings = this.visualSettings || <VisualSettings>VisualSettings.getDefault();
+        return VisualSettings.enumerateObjectInstances(settings, options);
     }
 
     public update(options: VisualUpdateOptions) {
@@ -131,19 +130,14 @@ export class Visual implements IVisual {
 
         // add tooltip to visual
         this.tooltipServiceWrapper.addTooltip(
-            this.svg.selectAll('.bar'),
+            this.svg.selectAll(".textValue"),
             (tooltipEvent: TooltipEventArgs<TooltipEnabledDataPoint>) => {
-                return tooltipEvent.data.tooltipInfo;
+                //return tooltipEvent.data.tooltipInfo;
+                return [{
+                    displayName: "test",
+                    value: null
+                }];
             });
     }
 
-    private getViewModel(options: VisualUpdateOptions): ViewModel {
-
-        // define initial values for view model
-        let ViewModel: ViewModel = {
-            dataPoints: []
-        };
-
-        return ViewModel;
-    }
 }
