@@ -31,51 +31,119 @@ import powerbi from "powerbi-visuals-api";
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisual = powerbi.extensibility.visual.IVisual;
-import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
+import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import VisualObjectInstance = powerbi.VisualObjectInstance;
 import DataView = powerbi.DataView;
 import VisualObjectInstanceEnumerationObject = powerbi.VisualObjectInstanceEnumerationObject;
-
+import EnumerateVisualObjectInstancesOptions = powerbi.EnumerateVisualObjectInstancesOptions;
 import { VisualSettings } from "./settings";
+
+// imports d3 library
+import * as d3 from "d3";
+type Selection<T extends d3.BaseType> = d3.Selection<T, any, any, any>;
+
+// run npm install powerbi-visuals-utils-tooltiputils --save to install in project
+import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
+import { createTooltipServiceWrapper, TooltipEventArgs, ITooltipServiceWrapper, TooltipEnabledDataPoint } from "powerbi-visuals-utils-tooltiputils";
+import { style } from "d3";
+
+interface DataPoint {
+    tooltips: VisualTooltipDataItem[];
+};
+
+interface ViewModel {
+    dataPoints: DataPoint[];
+};
+
 export class Visual implements IVisual {
-    private target: HTMLElement;
-    private updateCount: number;
-    private settings: VisualSettings;
-    private textNode: Text;
+
+    // private properties for Visual class
+    private host: IVisualHost;
+    private svg: Selection<SVGElement>;
+    private circleContainer: Selection<SVGElement>;
+    private circle: Selection<SVGElement>;
+    private textValue: Selection<SVGElement>;
+    private textLabel: Selection<SVGElement>;
+    private visualSettings: VisualSettings;
+    private tooltipServiceWrapper: ITooltipServiceWrapper;
 
     constructor(options: VisualConstructorOptions) {
+        // let some browser console notifications for log tracking
         console.log('Visual constructor', options);
-        this.target = options.element;
-        this.updateCount = 0;
-        if (document) {
-            const new_p: HTMLElement = document.createElement("p");
-            new_p.appendChild(document.createTextNode("Update count:"));
-            const new_em: HTMLElement = document.createElement("em");
-            this.textNode = document.createTextNode(this.updateCount.toString());
-            new_em.appendChild(this.textNode);
-            new_p.appendChild(new_em);
-            this.target.appendChild(new_p);
-        }
+
+        // Create initial visual at opening
+        this.host = options.host;
+        this.svg = d3.select(options.element)
+            .append("svg")
+            .classed("circleCard", true);
+        this.circleContainer = this.svg.append("g")
+            .classed("container", true);
+        this.circle = this.circleContainer.append("circle")
+            .classed("circle", true);
+        this.textValue = this.circleContainer.append("text")
+            .classed("textValue", true);
+        this.textLabel = this.circleContainer.append("text")
+            .classed("textLabel", true);
+
+        // run tooltip wrapper
+        this.tooltipServiceWrapper = createTooltipServiceWrapper(options.host.tooltipService, options.element)
     }
 
     public update(options: VisualUpdateOptions) {
-        this.settings = Visual.parseSettings(options && options.dataViews && options.dataViews[0]);
+        // let some browser console notifications for log tracking
         console.log('Visual update', options);
-        if (this.textNode) {
-            this.textNode.textContent = (this.updateCount++).toString();
-        }
+        let dataView: DataView = options.dataViews[0];
+        let width: number = options.viewport.width;
+        let height: number = options.viewport.height;
+        this.svg.attr("width", width);
+        this.svg.attr("height", height);
+        let radius: number = Math.min(width, height) / 2.2;
+
+        this.visualSettings = VisualSettings.parse<VisualSettings>(dataView);
+
+        this.visualSettings.circle.circleThickness = Math.max(0, this.visualSettings.circle.circleThickness);
+        this.visualSettings.circle.circleThickness = Math.min(10, this.visualSettings.circle.circleThickness);
+
+        this.circle
+            .style("fill", this.visualSettings.circle.circleColor)
+            .style("fill-opacity", 0.5)
+            .style("stroke", "black")
+            .style("stroke-width", this.visualSettings.circle.circleThickness)
+            .style("r", radius)
+            .style("cx", width / 2)
+            .style("cy", height / 2);
+        let fontSizeValue: number = Math.min(width, height) / 5;
+        this.textValue
+            .text(<string>dataView.single.value)
+            .attr("x", "50%")
+            .attr("y", "50%")
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "middle")
+            .style("font-size", fontSizeValue + "px");
+        let fontSizeLabel: number = fontSizeValue / 4;
+        this.textLabel
+            .text(dataView.metadata.columns[0].displayName)
+            .attr("x", "50%")
+            .attr("y", height / 2)
+            .attr("dy", fontSizeValue / 1.2)
+            .attr("text-anchor", "middle")
+            .style("font-size", fontSizeLabel + "px");
+
+        // add tooltip to visual
+        this.tooltipServiceWrapper.addTooltip(
+            this.svg.selectAll('.bar'),
+            (tooltipEvent: TooltipEventArgs<TooltipEnabledDataPoint>) => {
+                return tooltipEvent.data.tooltipInfo;
+            });
     }
 
-    private static parseSettings(dataView: DataView): VisualSettings {
-        return <VisualSettings>VisualSettings.parse(dataView);
-    }
+    private getViewModel(options: VisualUpdateOptions): ViewModel {
 
-    /**
-     * This function gets called for each of the objects defined in the capabilities files and allows you to select which of the
-     * objects and properties you want to expose to the users in the property pane.
-     *
-     */
-    public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] | VisualObjectInstanceEnumerationObject {
-        return VisualSettings.enumerateObjectInstances(this.settings || VisualSettings.getDefault(), options);
+        // define initial values for view model
+        let ViewModel: ViewModel = {
+            dataPoints: []
+        };
+
+        return ViewModel;
     }
 }
