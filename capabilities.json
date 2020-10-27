@@ -7,12 +7,12 @@
         },
         {
             "displayName": "Tooltips",
+            "description": "Additional measures to display in the tooltip.",
             "name": "tooltip",
             "kind": "Measure"
         }
     ],
     "objects": {
-        
         "circle": {
             "displayName": "Circle",
             "properties": {

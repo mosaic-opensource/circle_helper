@@ -51,7 +51,7 @@ import { style } from "d3";
 
 interface DataPoint {
     textLabelCont: string;
-    textValueCont: number;
+    textValueCont: string;
     tooltips: VisualTooltipDataItem[];
     selectionId: ISelectionId;
 };
@@ -92,9 +92,9 @@ export class Visual implements IVisual {
 
         // run tooltip wrapper
         this.tooltipServiceWrapper = createTooltipServiceWrapper(
-            options.host.tooltipService, 
+            options.host.tooltipService,
             options.element
-            )
+        )
     }
 
     public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
@@ -105,7 +105,13 @@ export class Visual implements IVisual {
     public update(options: VisualUpdateOptions) {
         // let some browser console notifications for log tracking
         console.log('Visual update', options);
+                
+        let ViewModel = this.getViewModel(options);
+        console.log("ViewModel", ViewModel);
+
         let dataView: DataView = options.dataViews[0];
+        console.log("DataView", options.dataViews);
+
         let width: number = options.viewport.width;
         let height: number = options.viewport.height;
         this.svg.attr("width", width);
@@ -125,17 +131,19 @@ export class Visual implements IVisual {
             .style("r", radius)
             .style("cx", width / 2)
             .style("cy", height / 2);
+        
         let fontSizeValue: number = Math.min(width, height) / 5;
         this.textValue
-            .text(<string>dataView.single.value)
+            .text(ViewModel.dataPoints[0].textValueCont)
             .attr("x", "50%")
             .attr("y", "50%")
             .attr("dy", "0.35em")
             .attr("text-anchor", "middle")
             .style("font-size", fontSizeValue + "px");
-        let fontSizeLabel: number = fontSizeValue / 4;
+        
+            let fontSizeLabel: number = fontSizeValue / 4;
         this.textLabel
-            .text(dataView.metadata.columns[0].displayName)
+            .text(ViewModel.dataPoints[0].textLabelCont)
             .attr("x", "50%")
             .attr("y", height / 2)
             .attr("dy", fontSizeValue / 1.2)
@@ -145,15 +153,44 @@ export class Visual implements IVisual {
         // add tooltip to visual
         this.tooltipServiceWrapper.addTooltip(
             this.svg.selectAll(".textValue"),
-            (tooltipEvent: TooltipEventArgs<number>) => Visual.getTooltipData(tooltipEvent.data),
-            (tooltipEvent: TooltipEventArgs<number>) => null
+            (tooltipEvent: TooltipEventArgs<number>) => ViewModel.dataPoints[0].tooltips,
+            (tooltipEvent: TooltipEventArgs<number>) => ViewModel.dataPoints[0].selectionId
         );
     }
 
-    private static getTooltipData(value: any): VisualTooltipDataItem[] {
-        return [{
-            displayName: "test",
-            value: "Isto é um teste"
-        }];
+    private getViewModel(options: VisualUpdateOptions): ViewModel {
+        
+        let dv = options.dataViews;
+
+        let ViewModel: ViewModel = {
+            dataPoints: []
+        };
+
+        // returns a empty data model when there is nothing to show
+        if (!dv
+            || !dv[0]
+            || !dv[0].single
+            || !dv[0].single.value
+            || !dv[0].metadata)
+            return ViewModel;
+        
+        let metadata = dv[0].metadata;
+        let cardlabel = metadata.columns[0].displayName;
+        let cardtext = <string>dv[0].single.value;
+
+        ViewModel.dataPoints.push({
+            textLabelCont: cardlabel,
+            textValueCont: cardtext,
+            tooltips: [{
+                displayName: "1,2 1,2 testing",
+                value: " som, som Isto é um teste!"
+            }],
+            //selectionId: null
+            selectionId: this.host.createSelectionIdBuilder()
+                .withMeasure(dv[0].metadata.columns[0].queryName)
+                .createSelectionId()
+        })
+
+        return ViewModel;
     }
 }
