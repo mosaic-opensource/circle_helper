@@ -49,6 +49,17 @@ import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
 import { createTooltipServiceWrapper, TooltipEventArgs, ITooltipServiceWrapper, TooltipEnabledDataPoint } from "powerbi-visuals-utils-tooltiputils";
 import { style } from "d3";
 
+interface DataPoint {
+    textLabelCont: string;
+    textValueCont: number;
+    tooltips: VisualTooltipDataItem[];
+    selectionId: ISelectionId;
+};
+
+interface ViewModel {
+    dataPoints: DataPoint[];
+};
+
 export class Visual implements IVisual {
 
     // private properties for Visual class
@@ -80,7 +91,10 @@ export class Visual implements IVisual {
             .classed("textLabel", true);
 
         // run tooltip wrapper
-        this.tooltipServiceWrapper = createTooltipServiceWrapper(options.host.tooltipService, options.element)
+        this.tooltipServiceWrapper = createTooltipServiceWrapper(
+            options.host.tooltipService, 
+            options.element
+            )
     }
 
     public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
@@ -131,13 +145,15 @@ export class Visual implements IVisual {
         // add tooltip to visual
         this.tooltipServiceWrapper.addTooltip(
             this.svg.selectAll(".textValue"),
-            (tooltipEvent: TooltipEventArgs<TooltipEnabledDataPoint>) => {
-                //return tooltipEvent.data.tooltipInfo;
-                return [{
-                    displayName: "test",
-                    value: null
-                }];
-            });
+            (tooltipEvent: TooltipEventArgs<number>) => Visual.getTooltipData(tooltipEvent.data),
+            (tooltipEvent: TooltipEventArgs<number>) => null
+        );
     }
 
+    private static getTooltipData(value: any): VisualTooltipDataItem[] {
+        return [{
+            displayName: "test",
+            value: "Isto é um teste"
+        }];
+    }
 }
