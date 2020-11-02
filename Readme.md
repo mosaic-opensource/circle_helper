@@ -8,9 +8,9 @@ Download last version of visual from this [link](https://github.com/pmags/circle
 ## How to use
 Download the visual from the above link. In Power BI choose to import visual from file and you are ready to use.
 
-
 ---
 ### About Mosaic
 
-![icon](https://www.mosaic.pt/images/Logo%20Cor%20Final%20Mosaic.png)
-[link](www.mosaic.pt)
+<img src="https://www.mosaic.pt/images/Logo%20Cor%20Final%20Mosaic.png" width="200" height="40" />
+
+[www.mosaic.pt](www.mosaic.pt)
